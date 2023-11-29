@@ -50,6 +50,7 @@ const Ts: []const type = blk: {
 };
 
 pub fn main() !void {
+    @setEvalBranchQuota(2000);
     const mode = enum { bench, write }.bench;
     var rand = std.rand.DefaultPrng.init(0);
     var buf: [256]u8 = undefined;
@@ -100,6 +101,8 @@ pub fn main() !void {
                     const s = fbs.getWritten();
                     _ = try writer.write(s);
                     try writer.writeByte('\n');
+                    const U = comptime std.meta.Int(info.Int.signedness, ((info.Int.bits + 7) >> 3) << 3);
+                    try writer.writeInt(U, @as(T, @truncate(expected)), .little);
                 }
             }
         }
@@ -122,11 +125,15 @@ pub fn main() !void {
             switch (@as(u7, @intCast(tidx))) {
                 inline else => |Tidx| if (Tidx < Ts.len) {
                     const T = Ts[Tidx];
-                    const expected = try std.fmt.parseInt(T, n, base);
+                    const info = @typeInfo(T);
+                    const U = comptime std.meta.Int(info.Int.signedness, ((info.Int.bits + 7) >> 3) << 3);
+                    const expected = try reader.readInt(U, .little);
+
                     // std.debug.print(
                     //     "parseInt({}, \"{s}\", {}). expected={}\n",
                     //     .{ T, n, base, expected },
                     // );
+
                     const actual = fmt.parseInt(T, n, base) catch |e| {
                         std.log.err(
                             "parseInt({}, \"{s}\", {}) -> {s}. expected={}",
