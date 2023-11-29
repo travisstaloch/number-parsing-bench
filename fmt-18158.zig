@@ -19,12 +19,13 @@ pub const Alignment = enum {
     right,
 };
 
-pub const FormatOptions = struct {
+pub const FormatOptions2 = struct {
     precision: ?usize = null,
     width: ?usize = null,
     alignment: Alignment = .right,
     fill: u8 = ' ',
 };
+pub const FormatOptions = std.fmt.FormatOptions;
 
 /// Renders fmt string with args, calling `writer` with slices of bytes.
 /// If `writer` returns an error, the error is returned from `format` and
@@ -209,7 +210,8 @@ fn cacheString(str: anytype) []const u8 {
     return &str;
 }
 
-pub const Placeholder = struct {
+pub const Placeholder = std.fmt.Placeholder;
+pub const Placeholder2 = struct {
     specifier_arg: []const u8,
     fill: u8,
     alignment: Alignment,

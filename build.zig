@@ -25,12 +25,8 @@ pub fn build(b: *std.build.Builder) !void {
         .target = target,
         .optimize = optimize,
     });
-    // exe.strip = false;
     b.installArtifact(exe);
     exe.addOptions("build_options", build_options);
-    // const cfile: std.build.Step.Compile.CSourceFile = .{ .file = .{ .path = "intrinsics.c" }, .flags = &.{} };
-    // exe.addCSourceFile(cfile);
-    // exe.linkLibC();
 
     const run_step = b.step("run", "Run the exe");
     const exe_run = b.addRunArtifact(exe);
@@ -43,8 +39,6 @@ pub fn build(b: *std.build.Builder) !void {
         .optimize = optimize,
     });
     tests.addOptions("build_options", build_options);
-    // tests.addCSourceFile(cfile);
-    // tests.linkLibC();
     tests.filter = b.option([]const u8, "test-filter", "test filter") orelse "";
     const run_tests = b.step("test", "Run the tests");
     const test_run = b.addRunArtifact(tests);

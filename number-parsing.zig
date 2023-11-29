@@ -41,9 +41,9 @@ const Ts: []const type = blk: {
     inline for (0..129) |bits| {
         if (bits > 8 and bits % 4 != 0) continue;
         inline for (.{ .unsigned, .signed }) |signedness| {
+            // TODO remove this line once https://github.com/ziglang/zig/issues/18157 is resolved
             if (signedness == .signed and (bits == 2 or bits == 4 or bits == 5)) continue;
-            const T = std.meta.Int(signedness, bits);
-            ts = ts ++ [1]type{T};
+            ts = ts ++ [1]type{std.meta.Int(signedness, bits)};
         }
     }
     // @compileLog(ts);
@@ -72,7 +72,6 @@ pub fn main() !void {
         var bw = std.io.bufferedWriter(file.writer());
         const writer = bw.writer();
         for (0..100_0) |_| {
-            // TODO make issue for std parsing Overflows on i2,i4,i5 minInt
             inline for (Ts, 0..) |T, Tidx| {
                 for (bases ++ .{0}) |base| {
                     const info = @typeInfo(T);
@@ -151,6 +150,45 @@ pub fn main() !void {
                     try std.testing.expectEqual(expected, actual);
                 },
             }
+        }
+    }
+}
+
+fn testOne(comptime T: type, comptime expected: comptime_int, err: ?anyerror, base: u8) !void {
+    var buf: [256]u8 = undefined;
+    const len = std.fmt.formatIntBuf(&buf, expected, base, .lower, .{});
+    const s = buf[0..len];
+    const test_fmt =
+        \\test {{
+        \\    // {s}
+        \\    try std.testing.expectEqual(@as({s}, {}), try std.fmt.parseInt({1s}, "{s}", {}));
+        \\}}
+        \\
+    ;
+    if (err == null and comptime std.math.cast(T, expected) != null) {
+        const actual = fmt.parseInt(T, s, base) catch |e| {
+            std.debug.print(test_fmt, .{ @errorName(e), @typeName(T), expected, s, base });
+            return;
+        };
+
+        try std.testing.expectEqual(@as(T, expected), actual);
+    } else if (err != null) {
+        try std.testing.expectError(err.?, fmt.parseInt(T, s, base));
+    }
+}
+
+test "parseInt Ts - print failing test cases" {
+    // @setEvalBranchQuota(2000);
+    inline for (Ts) |T| {
+        for (2..37) |baseu| {
+            const base: u8 = @truncate(baseu);
+            try testOne(T, std.math.maxInt(T), null, base);
+            try testOne(T, std.math.maxInt(T) - 1, null, base);
+            try testOne(T, std.math.maxInt(T) + 1, error.Overflow, base);
+
+            try testOne(T, std.math.minInt(T), null, base);
+            try testOne(T, std.math.minInt(T) - 1, error.Overflow, base);
+            try testOne(T, std.math.minInt(T) + 1, null, base);
         }
     }
 }
