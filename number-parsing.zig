@@ -1,7 +1,8 @@
 const std = @import("std");
 const math = std.math;
 
-const fmt = if (@import("build_options").use_std) @import("fmt.zig") else @import("fmt-18158.zig");
+const build_options = @import("build_options");
+const fmt = if (build_options.use_std) @import("fmt.zig") else @import("fmt-18158.zig");
 
 pub const std_options = struct {
     pub const log_level = .err;
@@ -49,9 +50,11 @@ const Ts: []const type = blk: {
     break :blk ts;
 };
 
+pub const Mode = enum { bench, write };
+
 pub fn main() !void {
     @setEvalBranchQuota(2000);
-    const mode = enum { bench, write }.bench;
+
     var rand = std.rand.DefaultPrng.init(0);
     var buf: [256]u8 = undefined;
     var fbs = std.io.fixedBufferStream(&buf);
@@ -63,7 +66,7 @@ pub fn main() !void {
         .{ "x", "X" },
     };
 
-    if (mode == .write) {
+    if (build_options.mode == .write) {
         const file = try std.fs.cwd().createFile("numbers.txt", .{});
         defer file.close();
         var bw = std.io.bufferedWriter(file.writer());

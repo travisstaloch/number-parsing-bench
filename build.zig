@@ -1,4 +1,5 @@
 const std = @import("std");
+const Mode = @import("number-parsing.zig").Mode;
 
 pub fn build(b: *std.build.Builder) !void {
     const target = b.standardTargetOptions(.{});
@@ -9,8 +10,14 @@ pub fn build(b: *std.build.Builder) !void {
         "use-std",
         "use the std lib implementation",
     ) orelse false;
+    const mode = b.option(
+        Mode,
+        "mode",
+        "mode. defaults to bench.",
+    ) orelse .bench;
     const build_options = b.addOptions();
     build_options.addOption(bool, "use_std", use_std);
+    build_options.addOption(Mode, "mode", mode);
 
     const exe = b.addExecutable(.{
         .name = "number-parsing",
